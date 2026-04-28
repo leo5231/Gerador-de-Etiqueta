@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerador de Etiquetas</title>
+  
+  <a href="limpador.html">
+    <button>Limpador de texto</button>
+  </a>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      margin: 15px;
+    }
+
+    textarea {
+      padding: 6px;
+      width: 300px;
+      font-size: 12px;
+    }
+
+    button {
+      padding: 6px 10px;
+      margin-top: 8px;
+      margin-right: 8px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    #status {
+      margin-top: 8px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      column-gap: 40px;
+      row-gap: 10px;
+      margin-top: 15px;
+      padding-top: 6px;
+    }
+
+    .etiqueta {
+      height: 70px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: center;
+      font-size: 8px;
+      padding-top: 2px;
+      gap: 1px;
+    }
+
+    .linha-topo {
+      display: flex;
+      gap: 4px;
+      font-weight: bold;
+      font-size: 8px;
+    }
+
+    .descricao {
+      font-size: 7px;
+      line-height: 1;
+    }
+
+    svg {
+      display: block;
+    }
+
+    .ean-text {
+      font-size: 6px;
+      margin-top: -2px;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+<h3>Gerador de Etiquetas</h3>
+
+<textarea id="skuInput" rows="6" placeholder="Ex:
+Q    123456
+M    789101"></textarea><br>
+
+<button onclick="buscarSKU()">Buscar</button>
+<button onclick="gerarPDF()">Gerar PDF</button>
+
+<p id="status">Carregando...</p>
+
+<div id="resultado" class="grid"></div>
+
+<script>
+let dados = [];
+
+fetch('./etiquetas-adesivas-i.xlsx')
+.then(r => r.arrayBuffer())
+.then(data => {
+  const wb = XLSX.read(data, { type: "array" });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const linhas = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  linhas.shift();
+
+  dados = linhas.map(l => ({
+    SKU: l[0],
+    EAN: l[1],
+    DESCRICAO: l[3],
+    CATEGORIA: String(l[4] || "").substring(0,2).toUpperCase(),
+    LOCACAO: "M"
+  }));
+
+  status.textContent = "✔ Planilha carregada";
+});
+
+function buscarSKU() {
+  resultado.innerHTML = "";
+
+  const linhas = skuInput.value
+    .split("\n")
+    .map(l => l.trim())
+    .filter(l => l);
+
+  linhas.forEach(linha => {
+    const partes = linha.split(/\s+/);
+
+    const locacao = partes[0]?.toUpperCase();
+    const codigo = partes[1]?.toUpperCase();
+
+    if (!codigo) return;
+
+    const item = dados.find(d =>
+      String(d.SKU) === codigo || String(d.EAN) === codigo
+    );
+
+    const div = document.createElement("div");
+    div.className = "etiqueta";
+
+    if (item) {
+      const id = "b" + Math.random().toString(36).slice(2);
+      const ean = String(item.EAN).replace(/\D/g, "");
+
+      if (ean.length !== 13) {
+        div.innerHTML = `${codigo} ❌ EAN inválido`;
+        resultado.appendChild(div);
+        return;
+      }
+
+      div.innerHTML = `
+        <div class="linha-topo">
+          <span>${item.SKU}</span>
+          <span>${locacao}</span>
+          <span>${item.CATEGORIA}</span>
+        </div>
+        <div class="descricao">${item.DESCRICAO}</div>
+        <svg id="${id}"></svg>
+        <div class="ean-text">${ean}</div>
+      `;
+
+      setTimeout(() => {
+        JsBarcode(`#${id}`, ean, {
+          format: "EAN13",
+          width: 1,
+          height: 22,
+          displayValue: false,
+          margin: 1
+        });
+      }, 0);
+
+    } else {
+      div.innerHTML = `${codigo} ❌`;
+    }
+
+    resultado.appendChild(div);
+  });
+
+  status.textContent = "✔ Busca finalizada";
+}
+
+function gerarPDF() {
+  html2pdf().set({
+    margin: 5,
+    html2canvas: {
+      scale: 3,
+      useCORS: true
+    },
+    jsPDF: {
+      unit: 'mm',
+      format: 'a4'
+    }
+  }).from(resultado).save();
+}
+</script>
+
+</body>
+</html>

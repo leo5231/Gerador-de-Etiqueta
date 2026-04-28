@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+
+<a href="index.html">
+    <button>Voltar</button>
+  </a>
+
+<style>
+  body {
+    font-family: monospace;
+    padding: 20px;
+    background: #111;
+    color: #fff;
+  }
+
+  textarea {
+    width: 100%;
+    height: 200px;
+    margin-bottom: 10px;
+    background: #000;
+    color: #0f0;
+    border: 1px solid #444;
+    padding: 10px;
+  }
+
+  button {
+    padding: 10px 20px;
+    background: #0f0;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  pre {
+    background: #000;
+    padding: 10px;
+    margin-top: 20px;
+    color: #0f0;
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+
+<h2>Extrair Letra + SKU</h2>
+
+<textarea id="input" placeholder="Cole o texto aqui..."></textarea>
+<button onclick="processar()">Processar</button>
+
+<pre id="output"></pre>
+
+<script>
+function processar() {
+  const input = document.getElementById("input").value;
+  const linhas = input.split("\n");
+
+  let resultado = [];
+
+  linhas.forEach(linha => {
+    linha = linha.trim();
+    if (!linha) return;
+
+    // quebra por qualquer quantidade de espaço
+    let partes = linha.split(/\s+/);
+
+    let letra = partes[0]; // primeira coluna
+    let sku = partes[partes.length - 1]; // último valor
+
+    resultado.push(`${letra}    ${sku}`);
+  });
+
+  document.getElementById("output").textContent = resultado.join("\n");
+}
+</script>
+
+</body>
+</html>
