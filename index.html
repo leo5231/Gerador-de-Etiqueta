@@ -99,30 +99,49 @@ M    789101"></textarea><br>
 
 <script>
 let dados = [];
+const skuInputEl = document.getElementById("skuInput");
+const resultadoEl = document.getElementById("resultado");
+const statusEl = document.getElementById("status");
 
-fetch('./etiquetas-adesivas-i.xlsx')
+fetch('./etiquetas adesivas i.xlsx')
 .then(r => r.arrayBuffer())
 .then(data => {
   const wb = XLSX.read(data, { type: "array" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
-  const linhas = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  // Importante: `raw:false` traz o texto formatado da célula (evita EAN em notação científica e ajuda com zeros à esquerda)
+  const linhas = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
   linhas.shift();
 
   dados = linhas.map(l => ({
-    SKU: l[0],
-    EAN: l[1],
-    DESCRICAO: l[3],
+    SKU: String(l[0] ?? "").trim(),
+    EAN: String(l[1] ?? "").trim(),
+    DESCRICAO: String(l[3] ?? "").trim(),
     CATEGORIA: String(l[4] || "").substring(0,2).toUpperCase(),
     LOCACAO: "M"
   }));
 
-  status.textContent = "✔ Planilha carregada";
+  statusEl.textContent = "✔ Planilha carregada";
 });
 
-function buscarSKU() {
-  resultado.innerHTML = "";
+function normalizarSku(v) {
+  // SKU é texto na planilha: manter caracteres (hífen, barra, etc.) e só normalizar espaços/case.
+  return String(v ?? "")
+    .replace(/\u00A0/g, " ")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "") // remove zero-width chars comuns em copy/paste
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, ""); // SKU: ignora qualquer espaço (inclusive no meio)
+}
 
-  const linhas = skuInput.value
+function normalizarEan(v) {
+  // EAN deve ser apenas dígitos (excel pode trazer com espaços/símbolos)
+  return String(v ?? "").replace(/\D/g, "");
+}
+
+function buscarSKU() {
+  resultadoEl.innerHTML = "";
+
+  const linhas = skuInputEl.value
     .split("\n")
     .map(l => l.trim())
     .filter(l => l);
@@ -130,25 +149,47 @@ function buscarSKU() {
   linhas.forEach(linha => {
     const partes = linha.split(/\s+/);
 
-    const locacao = partes[0]?.toUpperCase();
-    const codigo = partes[1]?.toUpperCase();
+    // aceita tanto "Q    123456" quanto apenas "123456"
+    const locacao = (partes.length >= 2 ? partes[0] : "").toUpperCase();
+    const codigoBruto = partes.length >= 2 ? partes[1] : partes[0];
+    const codigoSku = normalizarSku(codigoBruto);
+    const codigoEan = normalizarEan(codigoBruto);
 
-    if (!codigo) return;
+    if (!codigoSku && !codigoEan) return;
 
-    const item = dados.find(d =>
-      String(d.SKU) === codigo || String(d.EAN) === codigo
-    );
+    // Se o usuário digitou algo que vira um EAN de 13 dígitos, tenta bater por EAN.
+    // Caso contrário, busca por SKU (texto).
+    let item = dados.find(d => {
+      if (codigoEan.length === 13) return normalizarEan(d.EAN) === codigoEan;
+      return normalizarSku(d.SKU) === codigoSku;
+    });
+
+    // Fallback: alguns SKUs variam entre '0' (zero) e 'O' (letra O) no cadastro/na digitação.
+    // Só tenta isso se não achou na busca exata.
+    if (!item && codigoSku) {
+      const variantes = new Set([
+        codigoSku,
+        codigoSku.replace(/O/g, "0"),
+        codigoSku.replace(/0/g, "O"),
+      ]);
+      item = dados.find(d => variantes.has(normalizarSku(d.SKU)));
+    }
 
     const div = document.createElement("div");
     div.className = "etiqueta";
 
     if (item) {
       const id = "b" + Math.random().toString(36).slice(2);
-      const ean = String(item.EAN).replace(/\D/g, "");
+      let ean = normalizarEan(item.EAN);
+
+      // Alguns itens vêm com UPC-A (12 dígitos). Para usar EAN13 no JsBarcode, prefixa 0.
+      if (ean.length === 12) {
+        ean = `0${ean}`;
+      }
 
       if (ean.length !== 13) {
-        div.innerHTML = `${codigo} ❌ EAN inválido`;
-        resultado.appendChild(div);
+        div.innerHTML = `${codigoSku || codigoEan} ❌ EAN inválido`;
+        resultadoEl.appendChild(div);
         return;
       }
 
@@ -174,13 +215,13 @@ function buscarSKU() {
       }, 0);
 
     } else {
-      div.innerHTML = `${codigo} ❌`;
+      div.innerHTML = `${codigoSku || codigoEan} ❌`;
     }
 
-    resultado.appendChild(div);
+    resultadoEl.appendChild(div);
   });
 
-  status.textContent = "✔ Busca finalizada";
+  statusEl.textContent = "✔ Busca finalizada";
 }
 
 function gerarPDF() {
@@ -194,7 +235,7 @@ function gerarPDF() {
       unit: 'mm',
       format: 'a4'
     }
-  }).from(resultado).save();
+  }).from(resultadoEl).save();
 }
 </script>
 
