@@ -1,55 +1,156 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limpador de Texto | FastShop</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #5b6472;
+      --brand: #1246ff;
+      --brand-2: #0d36c7;
+      --line: #e4e8f1;
+    }
 
-<a href="index.html">
-    <button>Voltar</button>
-  </a>
+    * {
+      box-sizing: border-box;
+    }
 
-<style>
-  body {
-    font-family: monospace;
-    padding: 20px;
-    background: #111;
-    color: #fff;
-  }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
 
-  textarea {
-    width: 100%;
-    height: 200px;
-    margin-bottom: 10px;
-    background: #000;
-    color: #0f0;
-    border: 1px solid #444;
-    padding: 10px;
-  }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 10px 32px rgba(13, 54, 199, 0.08);
+      overflow: hidden;
+    }
 
-  button {
-    padding: 10px 20px;
-    background: #0f0;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-  }
+    .header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, #f8faff, #eef3ff);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 
-  pre {
-    background: #000;
-    padding: 10px;
-    margin-top: 20px;
-    color: #0f0;
-    white-space: pre-wrap;
-  }
-</style>
+    h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .sub {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 22px 24px 26px;
+    }
+
+    .btn {
+      min-height: 40px;
+      padding: 8px 14px;
+      border-radius: 9px;
+      border: 1px solid transparent;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.18s ease;
+    }
+
+    .btn-link {
+      border-color: #cbd7ff;
+      color: var(--brand);
+      background: #fff;
+    }
+
+    .btn-link:hover {
+      background: #f1f5ff;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: #fff;
+      margin-top: 10px;
+    }
+
+    .btn-primary:hover {
+      background: var(--brand-2);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: bold;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 210px;
+      border: 1px solid #ccd3e2;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 13px;
+      resize: vertical;
+      font-family: Consolas, "Courier New", monospace;
+      background: #fff;
+    }
+
+    pre {
+      margin: 14px 0 0;
+      border: 1px solid #ccd3e2;
+      border-radius: 10px;
+      padding: 12px;
+      min-height: 140px;
+      white-space: pre-wrap;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+      background: #fafcff;
+      color: #172031;
+    }
+  </style>
 </head>
 <body>
+  <main class="container">
+    <header class="header">
+      <div>
+        <h1>Limpador de texto</h1>
+        <p class="sub">Extrai o primeiro campo (letra) e o SKU final para uso no gerador.</p>
+      </div>
+      <a class="btn btn-link" href="index.html">Voltar para a home</a>
+    </header>
 
-<h2>Extrair Letra + SKU</h2>
+    <section class="content">
+      <label for="input">Texto bruto vindo do GAN</label>
+      <textarea id="input" placeholder="Cole o texto aqui..."></textarea>
+      <button class="btn btn-primary" onclick="processar()">Processar</button>
 
-<textarea id="input" placeholder="Cole o texto aqui..."></textarea>
-<button onclick="processar()">Processar</button>
-
-<pre id="output"></pre>
+      <label for="output" style="margin-top: 16px;">Resultado limpo</label>
+      <pre id="output"></pre>
+    </section>
+  </main>
 
 <script>
 function processar() {
