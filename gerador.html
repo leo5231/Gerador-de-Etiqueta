@@ -397,17 +397,33 @@ function buscarSKU() {
   /* PAGINAÇÃO */
   for (let i = 0; i < etiquetas.length; i += 65) {
 
-    const pagina = document.createElement("div");
+const pagina = document.createElement("div");
 
-    pagina.className = "pagina";
+pagina.className = "pagina";
 
-    etiquetas
-      .slice(i, i + 65)
-      .forEach(el => pagina.appendChild(el));
+const bloco = etiquetas.slice(i, i + 65);
 
-    resultadoEl.appendChild(pagina);
+bloco.forEach(el => pagina.appendChild(el));
 
-  }
+/* COMPLETA OS ESPAÇOS VAZIOS */
+const faltando = 65 - bloco.length;
+
+for (let j = 0; j < faltando; j++) {
+
+  const fake = document.createElement("div");
+
+  fake.className = "etiqueta";
+
+  /* invisível mas ocupando espaço */
+  fake.style.visibility = "hidden";
+
+  pagina.appendChild(fake);
+
+}
+
+resultadoEl.appendChild(pagina);
+
+}
 
   statusEl.textContent = "✔ Busca finalizada";
 
