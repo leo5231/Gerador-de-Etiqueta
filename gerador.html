@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gerador de Etiquetas</title>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode/dist/JsBarcode.all.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- html2canvas -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <!-- jsPDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <style>
     :root {
@@ -46,11 +51,10 @@
       padding: 20px 24px;
       border-bottom: 1px solid var(--line);
       background: linear-gradient(135deg, #f8faff, #eef3ff);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+    }
+
+    .content {
+      padding: 22px 24px 26px;
     }
 
     h1 {
@@ -59,26 +63,15 @@
     }
 
     .sub {
-      margin: 4px 0 0;
+      margin-top: 4px;
       color: var(--muted);
       font-size: 14px;
     }
 
-    .content {
-      padding: 22px 24px 26px;
-    }
-
     .controls {
       display: grid;
-      grid-template-columns: 1fr;
       gap: 12px;
       max-width: 520px;
-    }
-
-    label {
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: bold;
     }
 
     textarea {
@@ -87,94 +80,84 @@
       font-size: 13px;
       border: 1px solid #ccd3e2;
       border-radius: 10px;
-      resize: vertical;
       min-height: 140px;
-      font-family: Consolas, "Courier New", monospace;
-      background: #fff;
+      font-family: Consolas, monospace;
     }
 
     button {
       min-height: 40px;
       padding: 8px 14px;
       border-radius: 9px;
-      border: 1px solid transparent;
       cursor: pointer;
-      font-size: 14px;
       font-weight: bold;
-      transition: 0.18s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: white;
+      border: 1px solid #cbd7ff;
     }
 
     .button-row {
       display: flex;
       gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .btn-primary {
-      background: var(--brand);
-      color: #fff;
-    }
-
-    .btn-primary:hover {
-      background: var(--brand-2);
-    }
-
-    .btn-secondary {
-      background: #fff;
-      color: var(--brand);
-      border-color: #cbd7ff;
-    }
-
-    .btn-secondary:hover {
-      background: #f1f5ff;
-    }
-
-    .btn-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 40px;
-      padding: 8px 14px;
-      border-radius: 9px;
-      border: 1px solid #cbd7ff;
-      text-decoration: none;
-      color: var(--brand);
-      font-size: 14px;
-      font-weight: bold;
-      background: #fff;
-      transition: 0.18s ease;
-    }
-
-    .btn-link:hover {
-      background: #f1f5ff;
     }
 
     #status {
-      margin-top: 2px;
       font-weight: bold;
-      font-size: 13px;
     }
 
-    .grid {
+    /* ÁREA DAS PÁGINAS */
+    #resultado {
+      margin-top: 30px;
+    }
+
+    .pagina {
+      width: 210mm;
+      height: 297mm;
+
+      background: white;
+
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      column-gap: 45px;
-      row-gap: 12px;
-      margin-top: 15px;
-      padding-top: 6px;
-      margin-right: 15px;
+
+      column-gap: 10px;
+      row-gap: 13px;
+
+      padding: 0;
+      margin: 0 auto 20px auto;
+
+      padding-top: 35px;
+      padding-bottom: 13px;
+    
+      overflow: hidden;
+
+      /* CRÍTICO */
+      position: relative;
+
+      /* trava tamanho */
+      min-height: 297mm;
+      max-height: 297mm;
     }
 
     .etiqueta {
       height: 70px;
+
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
       text-align: center;
+
       font-size: 8px;
-      padding-top: 2px;
+
       gap: 1px;
+
+      overflow: hidden;
     }
 
     .linha-topo {
@@ -187,71 +170,67 @@
     .descricao {
       font-size: 7px;
       line-height: 1;
-    }
-
-    svg {
-      display: block;
+      max-width: 100%;
+      overflow: hidden;
     }
 
     .ean-text {
       font-size: 6px;
       margin-top: -2px;
-      letter-spacing: 0.5px;
     }
 
-    @media (max-width: 1040px) {
-      .grid {
-        grid-template-columns: repeat(4, 1fr);
+    svg {
+      overflow: visible;
+    }
+
+    @media print {
+      body {
+        background: white;
+        padding: 0;
       }
-    }
 
-    @media (max-width: 860px) {
-      .grid {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
-
-    @media (max-width: 640px) {
-      .grid {
-        grid-template-columns: repeat(2, 1fr);
+      .pagina {
+        margin: 0;
+        page-break-after: always;
       }
     }
   </style>
 </head>
+
 <body>
+
 <main class="container">
-  <header class="header">
-    <div>
-      <h1>Gerador de etiquetas</h1>
-      <p class="sub">Cole os SKUs limpos, busque os produtos e exporte em PDF.</p>
-    </div>
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <a class="btn-link" href="index.html">Home</a>
-      <a class="btn-link" href="limpador.html">Limpador</a>
-    </div>
-  </header>
 
   <section class="content">
+
     <div class="controls">
-      <label for="skuInput">Entrada de SKUs</label>
-      <textarea id="skuInput" rows="6" placeholder="Ex:
-Q    123456
-M    789101"></textarea>
+
+      <textarea id="skuInput"></textarea>
 
       <div class="button-row">
-        <button class="btn-primary" onclick="buscarSKU()">Buscar</button>
-        <button class="btn-secondary" onclick="gerarPDF()">Gerar PDF</button>
+        <button class="btn-primary" onclick="buscarSKU()">
+          Buscar
+        </button>
+
+        <button class="btn-secondary" onclick="gerarPDF()">
+          Gerar PDF
+        </button>
       </div>
 
       <p id="status">Carregando...</p>
+
     </div>
 
-    <div id="resultado" class="grid"></div>
+    <div id="resultado"></div>
+
   </section>
+
 </main>
 
 <script>
+
 let dados = [];
+
 const skuInputEl = document.getElementById("skuInput");
 const resultadoEl = document.getElementById("resultado");
 const statusEl = document.getElementById("status");
@@ -259,10 +238,17 @@ const statusEl = document.getElementById("status");
 fetch('./etiquetas adesivas i.xlsx')
 .then(r => r.arrayBuffer())
 .then(data => {
+
   const wb = XLSX.read(data, { type: "array" });
+
   const sheet = wb.Sheets[wb.SheetNames[0]];
-  // Importante: `raw:false` traz o texto formatado da célula (evita EAN em notação científica e ajuda com zeros à esquerda)
-  const linhas = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
+
+  const linhas = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    raw: false,
+    defval: ""
+  });
+
   linhas.shift();
 
   dados = linhas.map(l => ({
@@ -274,24 +260,24 @@ fetch('./etiquetas adesivas i.xlsx')
   }));
 
   statusEl.textContent = "✔ Planilha carregada";
+
 });
 
 function normalizarSku(v) {
-  // SKU é texto na planilha: manter caracteres (hífen, barra, etc.) e só normalizar espaços/case.
   return String(v ?? "")
     .replace(/\u00A0/g, " ")
-    .replace(/[\u200B-\u200D\uFEFF]/g, "") // remove zero-width chars comuns em copy/paste
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .trim()
     .toUpperCase()
-    .replace(/\s+/g, ""); // SKU: ignora qualquer espaço (inclusive no meio)
+    .replace(/\s+/g, "");
 }
 
 function normalizarEan(v) {
-  // EAN deve ser apenas dígitos (excel pode trazer com espaços/símbolos)
   return String(v ?? "").replace(/\D/g, "");
 }
 
 function buscarSKU() {
+
   resultadoEl.innerHTML = "";
 
   const linhas = skuInputEl.value
@@ -299,50 +285,70 @@ function buscarSKU() {
     .map(l => l.trim())
     .filter(l => l);
 
+  let etiquetas = [];
+
   linhas.forEach(linha => {
+
     const partes = linha.split(/\s+/);
 
-    // aceita tanto "Q    123456" quanto apenas "123456"
     const locacao = (partes.length >= 2 ? partes[0] : "").toUpperCase();
-    const codigoBruto = partes.length >= 2 ? partes[1] : partes[0];
+
+    const codigoBruto =
+      partes.length >= 2
+      ? partes[1]
+      : partes[0];
+
     const codigoSku = normalizarSku(codigoBruto);
+
     const codigoEan = normalizarEan(codigoBruto);
 
     if (!codigoSku && !codigoEan) return;
 
-    // Se o usuário digitou algo que vira um EAN de 13 dígitos, tenta bater por EAN.
-    // Caso contrário, busca por SKU (texto).
     let item = dados.find(d => {
-      if (codigoEan.length === 13) return normalizarEan(d.EAN) === codigoEan;
+
+      if (codigoEan.length === 13) {
+        return normalizarEan(d.EAN) === codigoEan;
+      }
+
       return normalizarSku(d.SKU) === codigoSku;
+
     });
 
-    // Fallback: alguns SKUs variam entre '0' (zero) e 'O' (letra O) no cadastro/na digitação.
-    // Só tenta isso se não achou na busca exata.
     if (!item && codigoSku) {
+
       const variantes = new Set([
         codigoSku,
         codigoSku.replace(/O/g, "0"),
         codigoSku.replace(/0/g, "O"),
       ]);
-      item = dados.find(d => variantes.has(normalizarSku(d.SKU)));
+
+      item = dados.find(d =>
+        variantes.has(normalizarSku(d.SKU))
+      );
     }
 
     const div = document.createElement("div");
+
     div.className = "etiqueta";
 
     if (item) {
+
       const id = "b" + Math.random().toString(36).slice(2);
+
       let ean = normalizarEan(item.EAN);
 
-      // Alguns itens vêm com UPC-A (12 dígitos). Para usar EAN13 no JsBarcode, prefixa 0.
       if (ean.length === 12) {
         ean = `0${ean}`;
       }
 
       if (ean.length !== 13) {
-        div.innerHTML = `${codigoSku || codigoEan} ❌ EAN inválido`;
-        resultadoEl.appendChild(div);
+
+        div.innerHTML = `
+          ${codigoSku || codigoEan} ❌ EAN inválido
+        `;
+
+        etiquetas.push(div);
+
         return;
       }
 
@@ -352,12 +358,20 @@ function buscarSKU() {
           <span>${locacao}</span>
           <span>${item.CATEGORIA}</span>
         </div>
-        <div class="descricao">${item.DESCRICAO}</div>
+
+        <div class="descricao">
+          ${item.DESCRICAO}
+        </div>
+
         <svg id="${id}"></svg>
-        <div class="ean-text">${ean}</div>
+
+        <div class="ean-text">
+          ${ean}
+        </div>
       `;
 
       setTimeout(() => {
+
         JsBarcode(`#${id}`, ean, {
           format: "EAN13",
           width: 1,
@@ -365,31 +379,94 @@ function buscarSKU() {
           displayValue: false,
           margin: 1
         });
+
       }, 0);
 
     } else {
-      div.innerHTML = `${codigoSku || codigoEan} ❌`;
+
+      div.innerHTML = `
+        ${codigoSku || codigoEan} ❌
+      `;
+
     }
 
-    resultadoEl.appendChild(div);
+    etiquetas.push(div);
+
   });
 
+  /* PAGINAÇÃO */
+  for (let i = 0; i < etiquetas.length; i += 65) {
+
+    const pagina = document.createElement("div");
+
+    pagina.className = "pagina";
+
+    etiquetas
+      .slice(i, i + 65)
+      .forEach(el => pagina.appendChild(el));
+
+    resultadoEl.appendChild(pagina);
+
+  }
+
   statusEl.textContent = "✔ Busca finalizada";
+
 }
 
-function gerarPDF() {
-  html2pdf().set({
-    margin: 5,
-    html2canvas: {
+/* PDF NOVO - RENDERIZA UMA PÁGINA POR VEZ */
+async function gerarPDF() {
+
+  const paginas = document.querySelectorAll(".pagina");
+
+  if (!paginas.length) {
+    alert("Nenhuma etiqueta encontrada.");
+    return;
+  }
+
+  statusEl.textContent = "Gerando PDF...";
+
+  const { jsPDF } = window.jspdf;
+
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4"
+  });
+
+  for (let i = 0; i < paginas.length; i++) {
+
+    const pagina = paginas[i];
+
+    /* renderiza SOMENTE esta página */
+    const canvas = await html2canvas(pagina, {
       scale: 3,
-      useCORS: true
-    },
-    jsPDF: {
-      unit: 'mm',
-      format: 'a4'
+      useCORS: true,
+      backgroundColor: "#ffffff"
+    });
+
+    const imgData = canvas.toDataURL("image/jpeg", 1.0);
+
+    if (i > 0) {
+      pdf.addPage();
     }
-  }).from(resultadoEl).save();
+
+    pdf.addImage(
+      imgData,
+      'JPEG',
+      0,
+      0,
+      210,
+      297
+    );
+
+  }
+
+  pdf.save("etiquetas.pdf");
+
+  statusEl.textContent = "✔ PDF gerado";
+
 }
+
 </script>
 
 </body>
