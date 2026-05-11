@@ -72,6 +72,11 @@
       display: grid;
       gap: 12px;
       max-width: 520px;
+
+      background: #fafcff;
+      padding: 18px;
+      border-radius: 14px;
+      border: 1px solid #e7edff;
     }
 
     textarea {
@@ -82,6 +87,16 @@
       border-radius: 10px;
       min-height: 140px;
       font-family: Consolas, monospace;
+
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #1246ff;
+      box-shadow: 0 0 0 3px rgba(18, 70, 255, 0.12);
     }
 
     button {
@@ -91,6 +106,16 @@
       cursor: pointer;
       font-weight: bold;
       border: none;
+
+      transition:
+        background 0.2s ease,
+        transform 0.15s ease,
+        box-shadow 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
     }
 
     .btn-primary {
@@ -98,18 +123,45 @@
       color: white;
     }
 
+    .btn-primary:hover {
+      background: var(--brand-2);
+    }
+
     .btn-secondary {
       background: white;
       border: 1px solid #cbd7ff;
     }
 
+    .btn-secondary:hover {
+      background: #f7f9ff;
+    }
+
+    .btn-nav {
+      background: #eef2ff;
+      color: #1246ff;
+      border: 1px solid #cbd7ff;
+    }
+
+    .btn-nav:hover {
+      background: #dfe7ff;
+    }
+
     .button-row {
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     #status {
       font-weight: bold;
+
+      padding: 10px 12px;
+      background: #f3f6ff;
+      border-radius: 10px;
+      border: 1px solid #dce6ff;
+      color: #2340a0;
+      font-size: 13px;
+      width: fit-content;
     }
 
     /* ÁREA DAS PÁGINAS */
@@ -134,13 +186,11 @@
 
       padding-top: 35px;
       padding-bottom: 13px;
-    
+
       overflow: hidden;
 
-      /* CRÍTICO */
       position: relative;
 
-      /* trava tamanho */
       min-height: 297mm;
       max-height: 297mm;
     }
@@ -208,6 +258,7 @@
       <textarea id="skuInput"></textarea>
 
       <div class="button-row">
+
         <button class="btn-primary" onclick="buscarSKU()">
           Buscar
         </button>
@@ -215,6 +266,15 @@
         <button class="btn-secondary" onclick="gerarPDF()">
           Gerar PDF
         </button>
+
+        <button class="btn-nav" onclick="window.location.href='index.html'">
+          Home
+        </button>
+
+        <button class="btn-nav" onclick="window.location.href='limpador.html'">
+          Limpador
+        </button>
+
       </div>
 
       <p id="status">Carregando...</p>
@@ -397,33 +457,32 @@ function buscarSKU() {
   /* PAGINAÇÃO */
   for (let i = 0; i < etiquetas.length; i += 65) {
 
-const pagina = document.createElement("div");
+    const pagina = document.createElement("div");
 
-pagina.className = "pagina";
+    pagina.className = "pagina";
 
-const bloco = etiquetas.slice(i, i + 65);
+    const bloco = etiquetas.slice(i, i + 65);
 
-bloco.forEach(el => pagina.appendChild(el));
+    bloco.forEach(el => pagina.appendChild(el));
 
-/* COMPLETA OS ESPAÇOS VAZIOS */
-const faltando = 65 - bloco.length;
+    /* COMPLETA OS ESPAÇOS VAZIOS */
+    const faltando = 65 - bloco.length;
 
-for (let j = 0; j < faltando; j++) {
+    for (let j = 0; j < faltando; j++) {
 
-  const fake = document.createElement("div");
+      const fake = document.createElement("div");
 
-  fake.className = "etiqueta";
+      fake.className = "etiqueta";
 
-  /* invisível mas ocupando espaço */
-  fake.style.visibility = "hidden";
+      fake.style.visibility = "hidden";
 
-  pagina.appendChild(fake);
+      pagina.appendChild(fake);
 
-}
+    }
 
-resultadoEl.appendChild(pagina);
+    resultadoEl.appendChild(pagina);
 
-}
+  }
 
   statusEl.textContent = "✔ Busca finalizada";
 
@@ -453,7 +512,6 @@ async function gerarPDF() {
 
     const pagina = paginas[i];
 
-    /* renderiza SOMENTE esta página */
     const canvas = await html2canvas(pagina, {
       scale: 3,
       useCORS: true,
