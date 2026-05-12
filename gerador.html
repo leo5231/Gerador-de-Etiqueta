@@ -47,25 +47,8 @@
       overflow: hidden;
     }
 
-    .header {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--line);
-      background: linear-gradient(135deg, #f8faff, #eef3ff);
-    }
-
     .content {
       padding: 22px 24px 26px;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 22px;
-    }
-
-    .sub {
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 14px;
     }
 
     .controls {
@@ -164,7 +147,6 @@
       width: fit-content;
     }
 
-    /* ÁREA DAS PÁGINAS */
     #resultado {
       margin-top: 30px;
     }
@@ -177,22 +159,19 @@
 
       display: grid;
       grid-template-columns: repeat(5, 1fr);
+      grid-auto-rows: 70px;
 
       column-gap: 10px;
       row-gap: 13px;
 
-      padding: 0;
-      margin: 0 auto 20px auto;
-
       padding-top: 35px;
       padding-bottom: 13px;
+
+      margin: 0 auto 20px auto;
 
       overflow: hidden;
 
       position: relative;
-
-      min-height: 297mm;
-      max-height: 297mm;
     }
 
     .etiqueta {
@@ -234,6 +213,7 @@
     }
 
     @media print {
+
       body {
         background: white;
         padding: 0;
@@ -243,6 +223,7 @@
         margin: 0;
         page-break-after: always;
       }
+
     }
   </style>
 </head>
@@ -295,45 +276,70 @@ const skuInputEl = document.getElementById("skuInput");
 const resultadoEl = document.getElementById("resultado");
 const statusEl = document.getElementById("status");
 
+/* CARREGA PLANILHA */
 fetch('./etiquetas adesivas i.xlsx')
 .then(r => r.arrayBuffer())
 .then(data => {
 
-  const wb = XLSX.read(data, { type: "array" });
+  const wb = XLSX.read(data, {
+    type: "array"
+  });
 
   const sheet = wb.Sheets[wb.SheetNames[0]];
 
   const linhas = XLSX.utils.sheet_to_json(sheet, {
     header: 1,
-    raw: false,
+    raw: true,
     defval: ""
   });
 
   linhas.shift();
 
   dados = linhas.map(l => ({
+
     SKU: String(l[0] ?? "").trim(),
+
     EAN: String(l[1] ?? "").trim(),
+
     DESCRICAO: String(l[3] ?? "").trim(),
-    CATEGORIA: String(l[4] || "").substring(0,2).toUpperCase(),
+
+    CATEGORIA: String(l[4] || "")
+      .substring(0, 2)
+      .toUpperCase(),
+
     LOCACAO: "M"
+
   }));
 
   statusEl.textContent = "✔ Planilha carregada";
 
+})
+.catch(err => {
+
+  console.error(err);
+
+  statusEl.textContent = "❌ Erro ao carregar planilha";
+
 });
 
+/* NORMALIZA SKU */
 function normalizarSku(v) {
+
   return String(v ?? "")
     .replace(/\u00A0/g, " ")
     .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .trim()
     .toUpperCase()
     .replace(/\s+/g, "");
+
 }
 
+/* NORMALIZA EAN PARA BUSCA */
 function normalizarEan(v) {
-  return String(v ?? "").replace(/\D/g, "");
+
+  return String(v ?? "")
+    .replace(/\D/g, "");
+
 }
 
 function buscarSKU() {
@@ -343,7 +349,7 @@ function buscarSKU() {
   const linhas = skuInputEl.value
     .split("\n")
     .map(l => l.trim())
-    .filter(l => l);
+    .filter(Boolean);
 
   let etiquetas = [];
 
@@ -351,126 +357,178 @@ function buscarSKU() {
 
     const partes = linha.split(/\s+/);
 
-    const locacao = (partes.length >= 2 ? partes[0] : "").toUpperCase();
+    const locacao =
+      (partes.length >= 2
+      ? partes[0]
+      : "").toUpperCase();
 
     const codigoBruto =
       partes.length >= 2
       ? partes[1]
       : partes[0];
 
-    const codigoSku = normalizarSku(codigoBruto);
+    const codigoSku =
+      normalizarSku(codigoBruto);
 
-    const codigoEan = normalizarEan(codigoBruto);
+    const codigoEan =
+      normalizarEan(codigoBruto);
 
-    if (!codigoSku && !codigoEan) return;
+    if (!codigoSku && !codigoEan) {
+      return;
+    }
 
     let item = dados.find(d => {
 
-      if (codigoEan.length === 13) {
-        return normalizarEan(d.EAN) === codigoEan;
+      if (codigoEan.length >= 8) {
+
+        return (
+          normalizarEan(d.EAN) === codigoEan
+        );
+
       }
 
-      return normalizarSku(d.SKU) === codigoSku;
+      return (
+        normalizarSku(d.SKU) === codigoSku
+      );
 
     });
 
+    /* VARIAÇÕES O/0 */
     if (!item && codigoSku) {
 
       const variantes = new Set([
+
         codigoSku,
+
         codigoSku.replace(/O/g, "0"),
+
         codigoSku.replace(/0/g, "O"),
+
       ]);
 
       item = dados.find(d =>
-        variantes.has(normalizarSku(d.SKU))
+        variantes.has(
+          normalizarSku(d.SKU)
+        )
       );
+
     }
 
     const div = document.createElement("div");
 
     div.className = "etiqueta";
 
-    if (item) {
-
-      const id = "b" + Math.random().toString(36).slice(2);
-
-      let ean = normalizarEan(item.EAN);
-
-      if (ean.length === 12) {
-        ean = `0${ean}`;
-      }
-
-      if (ean.length !== 13) {
-
-        div.innerHTML = `
-          ${codigoSku || codigoEan} ❌ EAN inválido
-        `;
-
-        etiquetas.push(div);
-
-        return;
-      }
-
-      div.innerHTML = `
-        <div class="linha-topo">
-          <span>${item.SKU}</span>
-          <span>${locacao}</span>
-          <span>${item.CATEGORIA}</span>
-        </div>
-
-        <div class="descricao">
-          ${item.DESCRICAO}
-        </div>
-
-        <svg id="${id}"></svg>
-
-        <div class="ean-text">
-          ${ean}
-        </div>
-      `;
-
-      setTimeout(() => {
-
-        JsBarcode(`#${id}`, ean, {
-          format: "EAN13",
-          width: 1,
-          height: 22,
-          displayValue: false,
-          margin: 1
-        });
-
-      }, 0);
-
-    } else {
+    /* ITEM NÃO ENCONTRADO */
+    if (!item) {
 
       div.innerHTML = `
         ${codigoSku || codigoEan} ❌
       `;
 
+      etiquetas.push(div);
+
+      return;
+
     }
 
+    const id =
+      "b" +
+      Math.random()
+      .toString(36)
+      .slice(2);
+
+    /* EAN ORIGINAL DA PLANILHA */
+    let ean =
+      String(item.EAN ?? "").trim();
+
+    /* DEFINE FORMATO */
+    let formato = "CODE128";
+
+    if (/^\d{13}$/.test(ean)) {
+
+      formato = "EAN13";
+
+    }
+
+    div.innerHTML = `
+      <div class="linha-topo">
+
+        <span>${item.SKU}</span>
+
+        <span>${locacao}</span>
+
+        <span>${item.CATEGORIA}</span>
+
+      </div>
+
+      <div class="descricao">
+        ${item.DESCRICAO}
+      </div>
+
+      <svg id="${id}"></svg>
+
+      <div class="ean-text">
+        ${ean}
+      </div>
+    `;
+
     etiquetas.push(div);
+
+    setTimeout(() => {
+
+      try {
+
+        JsBarcode(`#${id}`, ean, {
+
+          format: formato,
+
+          width: 1,
+
+          height: 22,
+
+          displayValue: false,
+
+          margin: 1
+
+        });
+
+      } catch (err) {
+
+        console.error(
+          "Erro barcode:",
+          ean,
+          err
+        );
+
+      }
+
+    }, 0);
 
   });
 
   /* PAGINAÇÃO */
   for (let i = 0; i < etiquetas.length; i += 65) {
 
-    const pagina = document.createElement("div");
+    const pagina =
+      document.createElement("div");
 
     pagina.className = "pagina";
 
-    const bloco = etiquetas.slice(i, i + 65);
+    const bloco =
+      etiquetas.slice(i, i + 65);
 
-    bloco.forEach(el => pagina.appendChild(el));
+    bloco.forEach(el =>
+      pagina.appendChild(el)
+    );
 
-    /* COMPLETA OS ESPAÇOS VAZIOS */
-    const faltando = 65 - bloco.length;
+    /* COMPLETA VAZIOS */
+    const faltando =
+      65 - bloco.length;
 
     for (let j = 0; j < faltando; j++) {
 
-      const fake = document.createElement("div");
+      const fake =
+        document.createElement("div");
 
       fake.className = "etiqueta";
 
@@ -484,60 +542,95 @@ function buscarSKU() {
 
   }
 
-  statusEl.textContent = "✔ Busca finalizada";
+  statusEl.textContent =
+    "✔ Busca finalizada";
 
 }
 
-/* PDF NOVO - RENDERIZA UMA PÁGINA POR VEZ */
+/* GERAR PDF */
 async function gerarPDF() {
 
-  const paginas = document.querySelectorAll(".pagina");
+  const paginas =
+    document.querySelectorAll(".pagina");
 
   if (!paginas.length) {
+
     alert("Nenhuma etiqueta encontrada.");
+
     return;
+
   }
 
-  statusEl.textContent = "Gerando PDF...";
+  statusEl.textContent =
+    "Gerando PDF...";
+
+  /* GARANTE RENDER DOS BARCODES */
+  await new Promise(r =>
+    setTimeout(r, 300)
+  );
 
   const { jsPDF } = window.jspdf;
 
   const pdf = new jsPDF({
+
     orientation: "portrait",
+
     unit: "mm",
+
     format: "a4"
+
   });
 
   for (let i = 0; i < paginas.length; i++) {
 
     const pagina = paginas[i];
 
-    const canvas = await html2canvas(pagina, {
-      scale: 3,
-      useCORS: true,
-      backgroundColor: "#ffffff"
-    });
+    const canvas =
+      await html2canvas(pagina, {
 
-    const imgData = canvas.toDataURL("image/jpeg", 1.0);
+        scale: 2,
+
+        useCORS: true,
+
+        backgroundColor: "#ffffff"
+
+      });
+
+    const imgData =
+      canvas.toDataURL("image/png");
 
     if (i > 0) {
+
       pdf.addPage();
+
     }
 
     pdf.addImage(
+
       imgData,
-      'JPEG',
+
+      "PNG",
+
       0,
+
       0,
+
       210,
+
       297
+
     );
+
+    /* LIMPA MEMÓRIA */
+    canvas.width = 0;
+    canvas.height = 0;
 
   }
 
   pdf.save("etiquetas.pdf");
 
-  statusEl.textContent = "✔ PDF gerado";
+  statusEl.textContent =
+    "✔ PDF gerado";
 
 }
 
